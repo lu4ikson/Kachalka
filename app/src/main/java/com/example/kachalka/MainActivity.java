@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import java.util.ArrayList;
 import java.util.List;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -65,9 +66,14 @@ public class MainActivity extends AppCompatActivity {
         Button btnSave = findViewById(R.id.btnSave);
         Button btnHistory = findViewById(R.id.btnHistory);
 
-        btnSave.setOnClickListener(v -> {
+        btnSave.setOnClickListener(null); // отключаем обычный клик
+
+        btnSave.setOnLongClickListener(v -> {
             saveDay();
             saveState();
+
+            Toast.makeText(this, "Тренировка сохранена ✔️", Toast.LENGTH_SHORT).show();
+            return true;
         });
 
         btnHistory.setOnClickListener(v -> {
