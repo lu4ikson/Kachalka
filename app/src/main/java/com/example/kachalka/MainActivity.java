@@ -17,7 +17,7 @@ public class MainActivity extends AppCompatActivity {
     LinearLayout container;
     List<Exercise> exercises = new ArrayList<>();
 
-    String[] exerciseNames = {
+    String[] exerciseNamesA = {
             "Румынская тяга",
             "Жим гантелей сидя",
             "Тяга горизонтального блока",
@@ -26,28 +26,42 @@ public class MainActivity extends AppCompatActivity {
             "Подъём гантелей на бицепс"
     };
 
+    String[] exerciseNamesB = {
+            "Приседания",
+            "Жим штанги лёжа",
+            "Тяга верхнего блока",
+            "Выпады с гантелями",
+            "Махи в стороны",
+            "Разгибание на трицепс в блоке"
+    };
+
+    boolean isTrainingA = true;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         container = findViewById(R.id.container);
-
+        isTrainingA = getSharedPreferences("gym", MODE_PRIVATE)
+                .getBoolean("isA", true);
         // создаём упражнения
-        for (String name : exerciseNames) {
-            Exercise ex = new Exercise(name);
-            exercises.add(ex);
-        }
+        createExercises();
+        refreshUI();
 
-        // загружаем сохранённые значения
-        loadState();
+        Button btnSwitch = findViewById(R.id.btnSwitch);
 
-        // рисуем UI
-        for (Exercise ex : exercises) {
-            addExerciseView(ex);
-        }
+        btnSwitch.setOnClickListener(v -> {
+            saveState(); // сохраняем текущую тренировку
 
-        // 👇 ВОТ СЮДА ВСТАВЛЯЕШЬ
+            isTrainingA = !isTrainingA;
+
+            createExercises();
+            refreshUI();
+        });
+
+
+        // 👇
         Button btnSave = findViewById(R.id.btnSave);
         Button btnHistory = findViewById(R.id.btnHistory);
 
@@ -59,6 +73,56 @@ public class MainActivity extends AppCompatActivity {
         btnHistory.setOnClickListener(v -> {
             startActivity(new Intent(this, HistoryActivity.class));
         });
+    }
+    private void createExercises() {
+        exercises.clear();
+
+        String[] names = isTrainingA ? exerciseNamesA : exerciseNamesB;
+
+        for (String name : names) {
+            exercises.add(new Exercise(name));
+        }
+    }
+    // ===== Сохранение =====
+    private void saveState() {
+        SharedPreferences prefs = getSharedPreferences("gym", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        String prefix = isTrainingA ? "A_" : "B_";
+
+        for (int i = 0; i < exercises.size(); i++) {
+            for (int j = 0; j < 3; j++) {
+                editor.putInt(prefix + "ex_" + i + "_w_" + j, exercises.get(i).weights[j]);
+                editor.putInt(prefix + "ex_" + i + "_r_" + j, exercises.get(i).reps[j]);
+            }
+        }
+
+        editor.apply();
+    }
+    // ===== Загрузка =====
+    private void loadState() {
+        SharedPreferences prefs = getSharedPreferences("gym", MODE_PRIVATE);
+
+        String prefix = isTrainingA ? "A_" : "B_";
+
+        for (int i = 0; i < exercises.size(); i++) {
+            for (int j = 0; j < 3; j++) {
+                exercises.get(i).weights[j] =
+                        prefs.getInt(prefix + "ex_" + i + "_w_" + j, 0);
+
+                exercises.get(i).reps[j] =
+                        prefs.getInt(prefix + "ex_" + i + "_r_" + j, 0);
+            }
+        }
+    }
+    private void refreshUI() {
+        container.removeAllViews();
+
+        loadState();
+
+        for (Exercise ex : exercises) {
+            addExerciseView(ex);
+        }
     }
 
     private void addExerciseView(Exercise ex) {
@@ -177,20 +241,8 @@ public class MainActivity extends AppCompatActivity {
 
         container.addView(repsRow);
     }
-    // ===== Сохранение =====
-    private void saveState() {
-        SharedPreferences prefs = getSharedPreferences("gym", MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
 
-        for (int i = 0; i < exercises.size(); i++) {
-            for (int j = 0; j < 3; j++) {
-                editor.putInt("ex_" + i + "_w_" + j, exercises.get(i).weights[j]);
-                editor.putInt("ex_" + i + "_r_" + j, exercises.get(i).reps[j]);
-            }
-        }
 
-        editor.apply();
-    }
     private void saveDay() {
         try {
             SharedPreferences prefs = getSharedPreferences("history", MODE_PRIVATE);
@@ -229,24 +281,15 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-    // ===== Загрузка =====
-    private void loadState() {
-        SharedPreferences prefs = getSharedPreferences("gym", MODE_PRIVATE);
 
-        for (int i = 0; i < exercises.size(); i++) {
-            for (int j = 0; j < 3; j++) {
-                exercises.get(i).weights[j] =
-                        prefs.getInt("ex_" + i + "_w_" + j, 0);
-
-                exercises.get(i).reps[j] =
-                        prefs.getInt("ex_" + i + "_r_" + j, 0);
-            }
-        }
-    }
 
     @Override
     protected void onPause() {
         super.onPause();
         saveState();
+        getSharedPreferences("gym", MODE_PRIVATE)
+                .edit()
+                .putBoolean("isA", isTrainingA)
+                .apply();
     }
 }
