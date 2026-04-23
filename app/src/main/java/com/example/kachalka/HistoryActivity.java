@@ -2,7 +2,9 @@ package com.example.kachalka;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,11 +24,15 @@ public class HistoryActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        ScrollView scrollView = new ScrollView(this);
+
         container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
         container.setPadding(16,16,16,16);
 
-        setContentView(container);
+        scrollView.addView(container);
+
+        setContentView(scrollView);
 
         loadHistory();
     }
@@ -40,6 +46,8 @@ public class HistoryActivity extends AppCompatActivity {
 
             for (int d = days.length() - 1; d >= 0; d--) {
 
+                int indexToDelete = d; // важно для удаления
+
                 JSONObject day = days.getJSONObject(d);
 
                 long time = day.getLong("date");
@@ -50,6 +58,14 @@ public class HistoryActivity extends AppCompatActivity {
                 dateView.setText("📅 " + date);
                 dateView.setTextSize(18);
                 container.addView(dateView);
+
+                // КНОПКА УДАЛЕНИЯ
+                Button deleteBtn = new Button(this);
+                deleteBtn.setText("Удалить");
+
+                deleteBtn.setOnClickListener(v -> deleteDay(indexToDelete));
+
+                container.addView(deleteBtn);
 
                 JSONArray exercises = day.getJSONArray("exercises");
 
@@ -75,6 +91,32 @@ public class HistoryActivity extends AppCompatActivity {
                     }
                 }
             }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void deleteDay(int index) {
+        try {
+            SharedPreferences prefs = getSharedPreferences("history", MODE_PRIVATE);
+            String json = prefs.getString("days", "[]");
+
+            JSONArray days = new JSONArray(json);
+
+            JSONArray newDays = new JSONArray();
+
+            for (int i = 0; i < days.length(); i++) {
+                if (i != index) {
+                    newDays.put(days.get(i));
+                }
+            }
+
+            prefs.edit().putString("days", newDays.toString()).apply();
+
+            // перерисовываем экран
+            container.removeAllViews();
+            loadHistory();
 
         } catch (Exception e) {
             e.printStackTrace();
