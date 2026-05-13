@@ -136,6 +136,7 @@ public class MainActivity extends AppCompatActivity {
         TextView title = new TextView(this);
         title.setText(ex.name);
         title.setTextSize(18);
+
         title.setPadding(0, 20, 0, 10);
         container.addView(title);
 
